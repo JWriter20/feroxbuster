@@ -35,6 +35,7 @@ complete -c feroxbuster -l rate-limit -d 'Limit number of requests per second (p
 complete -c feroxbuster -l response-size-limit -d 'Limit size of response body to read in bytes (default: 4MB)' -r
 complete -c feroxbuster -l time-limit -d 'Limit total run time of all scans (ex: --time-limit 10m)' -r
 complete -c feroxbuster -s w -l wordlist -d 'Path or URL of the wordlist' -r -F
+complete -c feroxbuster -s F -l full-url-wordlist -d 'Path or URL of a wordlist whose entries are fully-qualified URLs' -r -F
 complete -c feroxbuster -s B -l collect-backups -d 'Automatically request likely backup extensions for "found" urls (default: ~, .bak, .bak2, .old, .1)' -r
 complete -c feroxbuster -s I -l dont-collect -d 'File extension(s) to Ignore while collecting extensions (only used with --collect-extensions)' -r
 complete -c feroxbuster -s o -l output -d 'Output file to write results to (use w/ --json for JSON entries)' -r -F

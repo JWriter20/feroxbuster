@@ -49,8 +49,11 @@ lazy_static! {
 }
 
 /// Create a Vec of Strings from the given wordlist then stores it inside an Arc
-fn get_unique_words_from_wordlist(path: &str) -> Result<Arc<Vec<String>>> {
-    log::trace!("enter: get_unique_words_from_wordlist({path})");
+fn get_unique_words_from_wordlist(
+    path: &str,
+    include_base_entry: bool,
+) -> Result<Arc<Vec<String>>> {
+    log::trace!("enter: get_unique_words_from_wordlist({path}, {include_base_entry})");
     let mut trimmed_word = false;
 
     let file = File::open(path).with_context(|| format!("Could not open {path}"))?;
@@ -61,7 +64,10 @@ fn get_unique_words_from_wordlist(path: &str) -> Result<Arc<Vec<String>>> {
     // `http://localhost/` instead of going straight into `http://localhost/WORD.EXT`.
     // for vanilla scans, it doesn't matter all that much, but it can be a significant difference
     // when `-e` is used, depending on the content at the base url.
-    let mut words = vec![String::from("")];
+    let mut words = Vec::new();
+    if include_base_entry {
+        words.push(String::from(""));
+    }
 
     for line in reader.lines() {
         line.map(|result| {
@@ -243,6 +249,8 @@ async fn wrapped_main(config: Arc<Configuration>) -> Result<()> {
         exit(0);
     }
 
+    let include_base_entry = !config.full_url_wordlist;
+
     let words = if config.wordlist.starts_with("http") {
         // found a url scheme, attempt to download the wordlist
         let response = config
@@ -283,16 +291,16 @@ async fn wrapped_main(config: Arc<Configuration>) -> Result<()> {
 
         std::fs::write(&filename, body)?;
 
-        get_unique_words_from_wordlist(&filename)?
+        get_unique_words_from_wordlist(&filename, include_base_entry)?
     } else {
-        match get_unique_words_from_wordlist(&config.wordlist) {
+        match get_unique_words_from_wordlist(&config.wordlist, include_base_entry) {
             Ok(w) => w,
             Err(err) => {
                 let secondary = Path::new(SECONDARY_WORDLIST);
 
                 if secondary.exists() {
                     eprintln!("Found wordlist in secondary location");
-                    get_unique_words_from_wordlist(SECONDARY_WORDLIST)?
+                    get_unique_words_from_wordlist(SECONDARY_WORDLIST, include_base_entry)?
                 } else {
                     return Err(err);
                 }
@@ -300,7 +308,8 @@ async fn wrapped_main(config: Arc<Configuration>) -> Result<()> {
         }
     };
 
-    if words.len() <= 1 {
+    let minimum_words = if include_base_entry { 1 } else { 0 };
+    if words.len() <= minimum_words {
         // the check is now <= 1 due to the initial empty string added in 2.6.0
         // 1 -> empty wordlist
         // 0 -> error

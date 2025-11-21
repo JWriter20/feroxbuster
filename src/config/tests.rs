@@ -10,6 +10,7 @@ use tempfile::TempDir;
 fn setup_config_test() -> Configuration {
     let data = r#"
             wordlist = "/some/path"
+            full_url_wordlist = true
             status_codes = [201, 301, 401]
             replay_codes = [201, 301]
             threads = 40
@@ -95,6 +96,7 @@ fn default_configuration() {
     assert_eq!(config.verbosity, 0);
     assert_eq!(config.scan_limit, 0);
     assert_eq!(config.limit_bars, 0);
+    assert!(!config.full_url_wordlist);
     assert!(!config.silent);
     assert!(!config.quiet);
     assert_eq!(config.output_level, OutputLevel::Default);
@@ -146,6 +148,13 @@ fn default_configuration() {
 fn config_reads_wordlist() {
     let config = setup_config_test();
     assert_eq!(config.wordlist, "/some/path");
+}
+
+#[test]
+/// parse the test config and see that the value parsed is correct
+fn config_reads_full_url_wordlist_flag() {
+    let config = setup_config_test();
+    assert!(config.full_url_wordlist);
 }
 
 #[test]

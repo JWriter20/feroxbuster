@@ -79,6 +79,8 @@ Register-ArgumentCompleter -Native -CommandName 'feroxbuster' -ScriptBlock {
             [CompletionResult]::new('--time-limit', '--time-limit', [CompletionResultType]::ParameterName, 'Limit total run time of all scans (ex: --time-limit 10m)')
             [CompletionResult]::new('-w', '-w', [CompletionResultType]::ParameterName, 'Path or URL of the wordlist')
             [CompletionResult]::new('--wordlist', '--wordlist', [CompletionResultType]::ParameterName, 'Path or URL of the wordlist')
+            [CompletionResult]::new('-F', '-F ', [CompletionResultType]::ParameterName, 'Path or URL of a wordlist whose entries are fully-qualified URLs')
+            [CompletionResult]::new('--full-url-wordlist', '--full-url-wordlist', [CompletionResultType]::ParameterName, 'Path or URL of a wordlist whose entries are fully-qualified URLs')
             [CompletionResult]::new('-B', '-B ', [CompletionResultType]::ParameterName, 'Automatically request likely backup extensions for "found" urls (default: ~, .bak, .bak2, .old, .1)')
             [CompletionResult]::new('--collect-backups', '--collect-backups', [CompletionResultType]::ParameterName, 'Automatically request likely backup extensions for "found" urls (default: ~, .bak, .bak2, .old, .1)')
             [CompletionResult]::new('-I', '-I ', [CompletionResultType]::ParameterName, 'File extension(s) to Ignore while collecting extensions (only used with --collect-extensions)')

@@ -577,6 +577,17 @@ pub fn initialize() -> Command {
                 .help("Path or URL of the wordlist")
                 .help_heading("Scan settings")
                 .num_args(1),
+        )
+        .arg(
+            Arg::new("full_url_wordlist")
+                .short('F')
+                .long("full-url-wordlist")
+                .value_hint(ValueHint::FilePath)
+                .value_name("FILE")
+                .help_heading("Scan settings")
+                .num_args(1)
+                .conflicts_with("wordlist")
+                .help("Path or URL of a wordlist whose entries are fully-qualified URLs"),
         ).arg(
             Arg::new("auto_tune")
                 .long("auto-tune")

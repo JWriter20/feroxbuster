@@ -124,6 +124,15 @@ impl FeroxUrl {
 
         let mut urls = vec![];
 
+        if self.handles.config.full_url_wordlist && Url::parse(word).is_ok() {
+            match self.format(word, None) {
+                Ok(url) => urls.push(url),
+                Err(_) => self.handles.stats.send(AddError(UrlFormat))?,
+            }
+            log::trace!("exit: formatted_urls -> {urls:?}");
+            return Ok(urls);
+        }
+
         let slash = if self.handles.config.add_slash {
             Some("/")
         } else {
@@ -159,7 +168,17 @@ impl FeroxUrl {
     pub fn format(&self, word: &str, extension: Option<&str>) -> Result<Url> {
         log::trace!("enter: format({word}, {extension:?})");
 
-        if Url::parse(word).is_ok() {
+        if let Ok(mut absolute_word) = Url::parse(word) {
+            if self.handles.config.full_url_wordlist {
+                if !self.handles.config.queries.is_empty() {
+                    absolute_word
+                        .query_pairs_mut()
+                        .extend_pairs(self.handles.config.queries.iter());
+                }
+                log::trace!("exit: format -> {absolute_word}");
+                return Ok(absolute_word);
+            }
+
             // when a full url is passed in as a word to be joined to a base url using
             // reqwest::Url::join, the result is that the word (url) completely overwrites the base
             // url, potentially resulting in requests to places that aren't actually the target
@@ -535,6 +554,38 @@ mod tests {
         let formatted = url.format("http://schmocalhost", None);
 
         assert!(formatted.is_err());
+    }
+
+    #[test]
+    /// when --full-url-wordlist is used, absolute entries should be accepted
+    fn formatted_urls_accept_full_urls_when_enabled() {
+        let mut config = Configuration::default();
+        config.full_url_wordlist = true;
+
+        let handles = Arc::new(Handles::for_testing(None, Some(Arc::new(config))).0);
+        let url = FeroxUrl::from_string("http://localhost", handles);
+        let word = "http://example.com/ready";
+
+        let formatted = url.formatted_urls(word, HashSet::new()).unwrap();
+        assert_eq!(formatted, [Url::parse(word).unwrap()]);
+    }
+
+    #[test]
+    /// when --full-url-wordlist is used, absolute entries should still get query params
+    fn formatted_full_urls_get_queries() {
+        let mut config = Configuration::default();
+        config.full_url_wordlist = true;
+        config.queries = vec![(String::from("token"), String::from("value"))];
+
+        let handles = Arc::new(Handles::for_testing(None, Some(Arc::new(config))).0);
+        let url = FeroxUrl::from_string("http://localhost", handles);
+        let word = "http://example.com/ready";
+
+        let formatted = url.formatted_urls(word, HashSet::new()).unwrap();
+        assert_eq!(
+            formatted,
+            [Url::parse("http://example.com/ready?token=value").unwrap()]
+        );
     }
 
     #[test]
