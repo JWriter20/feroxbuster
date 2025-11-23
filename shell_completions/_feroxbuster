@@ -73,6 +73,8 @@ _feroxbuster() {
 '--time-limit=[Limit total run time of all scans (ex\: --time-limit 10m)]:TIME_SPEC:_default' \
 '-w+[Path or URL of the wordlist]:FILE:_files' \
 '--wordlist=[Path or URL of the wordlist]:FILE:_files' \
+'(-w --wordlist)-F+[Path or URL of a wordlist whose entries are fully-qualified URLs]:FILE:_files' \
+'(-w --wordlist)--full-url-wordlist=[Path or URL of a wordlist whose entries are fully-qualified URLs]:FILE:_files' \
 '-B+[Automatically request likely backup extensions for "found" urls (default\: ~, .bak, .bak2, .old, .1)]' \
 '--collect-backups=[Automatically request likely backup extensions for "found" urls (default\: ~, .bak, .bak2, .old, .1)]' \
 '*-I+[File extension(s) to Ignore while collecting extensions (only used with --collect-extensions)]:FILE_EXTENSION:_default' \

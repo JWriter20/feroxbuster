@@ -97,6 +97,10 @@ pub struct Configuration {
     #[serde(default = "wordlist")]
     pub wordlist: String,
 
+    /// Treat wordlist entries as fully qualified URLs when true
+    #[serde(default)]
+    pub full_url_wordlist: bool,
+
     /// Path to the config file used
     #[serde(default)]
     pub config: String,
@@ -465,6 +469,7 @@ impl Default for Configuration {
             depth: depth(),
             threads: threads(),
             wordlist: wordlist(),
+            full_url_wordlist: false,
             dont_collect: ignored_extensions(),
             backup_extensions: backup_extensions(),
             unique: false,
@@ -691,6 +696,11 @@ impl Configuration {
         update_config_if_present!(&mut config.debug_log, args, "debug_log", String);
         update_config_if_present!(&mut config.resume_from, args, "resume_from", String);
         update_config_if_present!(&mut config.request_file, args, "request_file", String);
+
+        if let Some(full_urls) = args.get_one::<String>("full_url_wordlist") {
+            config.full_url_wordlist = true;
+            config.wordlist = full_urls.to_owned();
+        }
 
         // both target-url and scope rely on this value to help parse relative urls
         // so this logic must stay above target/scope parsing in this fn
@@ -1417,6 +1427,7 @@ impl Configuration {
         update_if_not_default!(&mut conf.threads, new.threads, threads());
         update_if_not_default!(&mut conf.depth, new.depth, depth());
         update_if_not_default!(&mut conf.wordlist, new.wordlist, wordlist());
+        update_if_not_default!(&mut conf.full_url_wordlist, new.full_url_wordlist, false);
         update_if_not_default!(&mut conf.status_codes, new.status_codes, status_codes());
         // status_codes() is the default for replay_codes, if they're not provided
         update_if_not_default!(&mut conf.replay_codes, new.replay_codes, status_codes());

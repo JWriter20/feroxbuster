@@ -76,6 +76,8 @@ set edit:completion:arg-completer[feroxbuster] = {|@words|
             cand --time-limit 'Limit total run time of all scans (ex: --time-limit 10m)'
             cand -w 'Path or URL of the wordlist'
             cand --wordlist 'Path or URL of the wordlist'
+            cand -F 'Path or URL of a wordlist whose entries are fully-qualified URLs'
+            cand --full-url-wordlist 'Path or URL of a wordlist whose entries are fully-qualified URLs'
             cand -B 'Automatically request likely backup extensions for "found" urls (default: ~, .bak, .bak2, .old, .1)'
             cand --collect-backups 'Automatically request likely backup extensions for "found" urls (default: ~, .bak, .bak2, .old, .1)'
             cand -I 'File extension(s) to Ignore while collecting extensions (only used with --collect-extensions)'

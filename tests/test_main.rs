@@ -295,3 +295,52 @@ fn main_download_wordlist_from_url() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+#[test]
+/// verify -F/--full-url-wordlist requests urls verbatim
+fn main_full_url_wordlist_requests_verbatim() -> Result<(), Box<dyn std::error::Error>> {
+    let srv = MockServer::start();
+
+    // set up a mock endpoint that will be used as the "base" url for connectivity check
+    // this won't be part of the scan, just to satisfy the -u requirement
+    let _mock_base = srv.mock(|when, then| {
+        when.method(GET).path("/");
+        then.status(200);
+    });
+
+    // set up endpoints that we expect to hit from the full url wordlist
+    let mock_full1 = srv.mock(|when, then| {
+        when.method(GET).path("/verbatim/one");
+        then.status(200);
+    });
+
+    let mock_full2 = srv.mock(|when, then| {
+        when.method(GET).path("/verbatim/two");
+        then.status(404);
+    });
+
+    let full_urls = [
+        srv.url("/verbatim/one"),
+        srv.url("/verbatim/two"),
+    ];
+
+    let (tmp_dir, wordlist) = setup_tmp_directory(&full_urls, "full-urls")?;
+
+    Command::cargo_bin("feroxbuster")
+        .unwrap()
+        .arg("--url")
+        .arg(srv.url("/")) // base url just for init
+        .arg("--full-url-wordlist")
+        .arg(wordlist.as_os_str())
+        .arg("--no-recursion")
+        .arg("-v")
+        .assert()
+        .success();
+
+    teardown_tmp_directory(tmp_dir);
+
+    assert_eq!(mock_full1.hits(), 1);
+    assert_eq!(mock_full2.hits(), 1);
+
+    Ok(())
+}
