@@ -124,13 +124,21 @@ impl FeroxUrl {
 
         let mut urls = vec![];
 
-        if self.handles.config.full_url_wordlist && Url::parse(word).is_ok() {
-            match self.format(word, None) {
-                Ok(url) => urls.push(url),
-                Err(_) => self.handles.stats.send(AddError(UrlFormat))?,
+        // For full URL wordlists, optimize by parsing once and skipping extension processing
+        if self.handles.config.full_url_wordlist {
+            // Try to parse the word as a URL - if it's already a full URL, use it directly
+            if let Ok(mut parsed_url) = Url::parse(word) {
+                // Apply query parameters if specified
+                if !self.handles.config.queries.is_empty() {
+                    parsed_url
+                        .query_pairs_mut()
+                        .extend_pairs(self.handles.config.queries.iter());
+                }
+                urls.push(parsed_url);
+                log::trace!("exit: formatted_urls -> {urls:?}");
+                return Ok(urls);
             }
-            log::trace!("exit: formatted_urls -> {urls:?}");
-            return Ok(urls);
+            // If parsing failed, fall through to normal processing (might be a relative path)
         }
 
         let slash = if self.handles.config.add_slash {
