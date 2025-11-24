@@ -352,13 +352,22 @@ impl Requester {
     pub async fn request(&self, word: &str) -> Result<()> {
         log::trace!("enter: request({word})");
 
-        let collected = self.handles.collected_extensions();
+        // For full URL wordlists, skip extension collection as URLs are already complete
+        let collected = if self.handles.config.full_url_wordlist {
+            HashSet::new()
+        } else {
+            self.handles.collected_extensions()
+        };
 
         let urls = FeroxUrl::from_string(&self.target_url, self.handles.clone())
             .formatted_urls(word, collected)?;
 
         let should_test_deny = !self.handles.config.url_denylist.is_empty()
             || !self.handles.config.regex_denylist.is_empty();
+
+        // For full URL wordlists, skip recursion by default unless explicitly enabled
+        let should_skip_recursion = self.handles.config.full_url_wordlist 
+            && !self.handles.config.force_recursion;
 
         for url in urls {
             for method in self.handles.config.methods.iter() {
@@ -426,7 +435,10 @@ impl Requester {
                 .await;
 
                 // do recursion if appropriate
-                if !self.handles.config.no_recursion && !self.handles.config.force_recursion {
+                // Skip recursion for full URL wordlists unless explicitly enabled
+                if !should_skip_recursion 
+                    && !self.handles.config.no_recursion 
+                    && !self.handles.config.force_recursion {
                     // to support --force-recursion, we want to limit recursive calls to only
                     // 'found' assets. That means we need to either gate or delay the call.
                     //
@@ -453,7 +465,9 @@ impl Requester {
                     self.handles.filters.data.push(Box::new(unique_filter))?;
                 }
 
-                if !self.handles.config.no_recursion && self.handles.config.force_recursion {
+                if !should_skip_recursion 
+                    && !self.handles.config.no_recursion 
+                    && self.handles.config.force_recursion {
                     // in this branch, we're saying that both recursion AND force recursion
                     // are turned on. It comes after should_filter_response, so those cases
                     // are handled. Now we need to account for -s/-C options.
@@ -480,7 +494,8 @@ impl Requester {
                     }
                 }
 
-                if self.handles.config.collect_extensions {
+                // Skip extension collection for full URL wordlists as URLs are already complete
+                if !self.handles.config.full_url_wordlist && self.handles.config.collect_extensions {
                     ferox_response.parse_extension(self.handles.clone())?;
                 }
 
@@ -498,7 +513,9 @@ impl Requester {
                     }
                 }
 
-                if self.handles.config.extract_links {
+                // Skip link extraction for full URL wordlists unless explicitly needed
+                // as each URL is already complete and doesn't need further discovery
+                if !self.handles.config.full_url_wordlist && self.handles.config.extract_links {
                     let mut extractor = ExtractorBuilder::default()
                         .target(ExtractionTarget::ResponseBody)
                         .response(&ferox_response)

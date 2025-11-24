@@ -223,7 +223,10 @@ impl FeroxScanner {
         // it completes before the scan ends
         let mut extraction_tasks = Vec::new();
 
-        if self.handles.config.extract_links && matches!(self.order, ScanOrder::Initial) {
+        // Skip robots.txt extraction for full URL wordlists as each URL is already complete
+        if !self.handles.config.full_url_wordlist 
+            && self.handles.config.extract_links 
+            && matches!(self.order, ScanOrder::Initial) {
             // check for robots.txt (cannot be in sub-directories, so limited to Initial)
             let mut extractor = ExtractorBuilder::default()
                 .target(ExtractionTarget::RobotsTxt)
@@ -264,9 +267,12 @@ impl FeroxScanner {
 
         {
             // heuristics test block:
-            let test = heuristics::HeuristicTests::new(self.handles.clone());
+            // Skip heuristics for full URL wordlists as each entry is already a complete URL
+            // and doesn't need wildcard/directory listing detection
+            if !self.handles.config.full_url_wordlist {
+                let test = heuristics::HeuristicTests::new(self.handles.clone());
 
-            if let Ok(Some(dirlist_result)) = test.directory_listing(&self.target_url).await {
+                if let Ok(Some(dirlist_result)) = test.directory_listing(&self.target_url).await {
                 // at this point, we have a DirListingType, and it's not the None variant
                 // which means we found directory listing based on the heuristic; now we need
                 // to process the links that are available if --extract-links was used
@@ -342,6 +348,8 @@ impl FeroxScanner {
             // `detect_404_like_responses` will make the requests that the wildcard test used to
             // perform pre-2.8 in addition to new detection techniques, superseding the old
             // wildcard test
+            // Note: 404 detection is still important for full URL wordlists to identify
+            // wildcard responses and filter out false positives
             let num_reqs_made = test.detect_404_like_responses(&self.target_url).await?;
 
             match num_reqs_made {
@@ -358,6 +366,7 @@ impl FeroxScanner {
                     progress_bar.inc(num_reqs as u64);
                 }
                 _ => {}
+            }
             }
         }
 
